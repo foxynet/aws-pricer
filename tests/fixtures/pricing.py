@@ -57,6 +57,7 @@ Resources
           "properties": [
               {"name": "productDescription", "value": "Linux/UNIX"},
               {"name": "tenancy", "value": "shared"},
+              {"name": "licenseModel", "value": "No License required"},
           ],
           "rate": "0.052",
           "unit": "Hrs",
@@ -116,6 +117,7 @@ def make_savings_plan_result(
     unit: str = "Hrs",
     product_description: str = "Linux/UNIX",
     tenancy: str = "shared",
+    license_model: str = "No License required",
 ) -> dict[str, Any]:
     """Return a minimal Savings Plans offering rate search result."""
     return {
@@ -137,6 +139,7 @@ def make_savings_plan_result(
             {"name": "productDescription", "value": product_description},
             {"name": "instanceType", "value": "m6i.large"},
             {"name": "tenancy", "value": tenancy},
+            {"name": "licenseModel", "value": license_model},
             {"name": "region", "value": "ap-southeast-2"},
         ],
     }
