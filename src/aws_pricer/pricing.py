@@ -16,6 +16,7 @@ _ONDEMAND_KEY: Final[str] = "OnDemand"
 _PRICE_DIMENSIONS_KEY: Final[str] = "priceDimensions"
 _PRICE_PER_UNIT_KEY: Final[str] = "pricePerUnit"
 _USD: Final[str] = "USD"
+_NO_LICENSE_REQUIRED: Final[str] = "No License required"
 _SUPPORTED_RATE_UNITS: Final[set[str]] = {"Hrs", "Hours"}
 _SAVINGS_PLAN_DURATION_LABELS: Final[dict[int, str]] = {
     31_536_000: "1y",
@@ -42,7 +43,7 @@ def get_ondemand_usd_per_hour(*, instance_type: str, region: str, os: str) -> De
         {"Type": _TERM_MATCH, "Field": "instanceType", "Value": instance_type},
         {"Type": _TERM_MATCH, "Field": "regionCode", "Value": region},
         {"Type": _TERM_MATCH, "Field": "operatingSystem", "Value": os},
-        {"Type": _TERM_MATCH, "Field": "licenseModel", "Value": "No License required"},
+        {"Type": _TERM_MATCH, "Field": "licenseModel", "Value": _NO_LICENSE_REQUIRED},
     ]
     filters.extend(
         {"Type": _TERM_MATCH, "Field": field, "Value": value}
@@ -105,13 +106,26 @@ def get_savingsplan_no_upfront_usd_per_hour(
             continue
 
         properties = result.get("properties")
+        license_model: str | None = None
         if isinstance(properties, Iterable):
-            product_description = _extract_property_value(properties, "productDescription")
+            product_description = _extract_property_value(
+                properties, "productDescription"
+            )
             if (
                 product_description is not None
                 and product_description not in allowed_product_descriptions
             ):
                 continue
+
+            license_model = _extract_property_value(properties, "licenseModel")
+        else:
+            continue
+
+        if (
+            license_model is None
+            or license_model.casefold() != _NO_LICENSE_REQUIRED.casefold()
+        ):
+            continue
 
         duration = offering.get("durationSeconds")
         if not isinstance(duration, int):

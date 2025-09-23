@@ -155,6 +155,50 @@ def test_get_savingsplan_no_upfront_usd_per_hour_parses_rates(
     assert "planType" not in filters
 
 
+def test_get_savingsplan_no_upfront_usd_per_hour_filters_license_model(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    if not hasattr(pricing, "get_savingsplan_no_upfront_usd_per_hour"):
+        pytest.fail("pricing.get_savingsplan_no_upfront_usd_per_hour is not implemented")
+
+    response = {
+        "searchResults": [
+            pricing_fixtures.make_savings_plan_result(
+                usd_per_hour="0.052",
+                duration_seconds=31_536_000,
+                license_model="No License required",
+            ),
+            pricing_fixtures.make_savings_plan_result(
+                usd_per_hour="0.060",
+                duration_seconds=94_608_000,
+                license_model="License Included",
+            ),
+            pricing_fixtures.make_savings_plan_result(
+                usd_per_hour="0.047",
+                duration_seconds=94_608_000,
+                license_model="No License required",
+            ),
+        ]
+    }
+    client = DummySavingsPlansClient(response=response)
+
+    def _fake_client(service_name: str, region_name: str | None = None) -> DummySavingsPlansClient:
+        assert service_name == "savingsplans"
+        return client
+
+    _patch_boto3(monkeypatch, fake_client=_fake_client)
+
+    result = pricing.get_savingsplan_no_upfront_usd_per_hour(
+        instance_type="m6i.large",
+        region="ap-southeast-2",
+        os="Linux",
+        plan_type="Compute",
+        savingsPlanPaymentOptions="No Upfront",
+    )
+
+    assert result == {"1y": Decimal("0.052"), "3y": Decimal("0.047")}
+
+
 def test_get_savingsplan_no_upfront_usd_per_hour_requires_one_and_three_year_rates(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
