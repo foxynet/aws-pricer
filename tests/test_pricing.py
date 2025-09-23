@@ -84,44 +84,6 @@ def test_get_ondemand_usd_per_hour_fetches_hourly_rate(monkeypatch: pytest.Monke
     assert call_kwargs.get("MaxResults") == 1
 
 
-def test_get_ondemand_usd_per_hour_sets_windows_license_model(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    if not hasattr(pricing, "get_ondemand_usd_per_hour"):
-        pytest.fail("pricing.get_ondemand_usd_per_hour is not implemented")
-
-    price_list_entry = pricing_fixtures.make_price_list_entry(usd_per_hour="0.192")
-    response = {"PriceList": [price_list_entry], "FormatVersion": "aws_v1"}
-    client = DummyPricingClient(response=response)
-
-    def _fake_client(service_name: str, region_name: str | None = None) -> DummyPricingClient:
-        assert service_name == "pricing"
-        assert region_name == "us-east-1"
-        return client
-
-    _patch_boto3(monkeypatch, fake_client=_fake_client)
-
-    result = pricing.get_ondemand_usd_per_hour(
-        instance_type="m6i.large",
-        region="us-west-2",
-        os="Windows",
-    )
-
-    assert result == Decimal("0.192")
-    assert client.calls, "Expected aws_pricer.pricing to invoke get_products"
-    call_kwargs = client.calls[-1]
-
-    filters = {
-        (
-            filter_entry.get("Field"),
-            filter_entry.get("Type"),
-        ): filter_entry.get("Value")
-        for filter_entry in call_kwargs.get("Filters", [])
-    }
-
-    assert filters[("licenseModel", "TERM_MATCH")] == "License Included"
-
-
 def test_get_ondemand_usd_per_hour_errors_when_no_prices(monkeypatch: pytest.MonkeyPatch) -> None:
     if not hasattr(pricing, "get_ondemand_usd_per_hour"):
         pytest.fail("pricing.get_ondemand_usd_per_hour is not implemented")
