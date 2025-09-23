@@ -21,6 +21,10 @@ _SAVINGS_PLAN_DURATION_LABELS: Final[dict[int, str]] = {
     31_536_000: "1y",
     94_608_000: "3y",
 }
+_SAVINGS_PLAN_PRODUCT_DESCRIPTION_ALIASES: Final[dict[str, tuple[str, ...]]] = {
+    "Linux": ("Linux/UNIX",),
+    "Linux/UNIX": ("Linux/UNIX",),
+}
 
 
 def get_ondemand_usd_per_hour(*, instance_type: str, region: str, os: str) -> Decimal:
@@ -62,13 +66,15 @@ def get_savingsplan_no_upfront_usd_per_hour(
     """Return 1-year and 3-year Savings Plans hourly USD prices."""
 
     client = boto3.client("savingsplans", region_name=_PRICING_REGION)
+    product_descriptions = _savings_plan_product_descriptions(os)
+    allowed_product_descriptions = set(product_descriptions)
     response = client.describe_savings_plans_offering_rates(
         savingsPlanPaymentOptions=_coerce_payment_options(savingsPlanPaymentOptions),
+        savingsPlanTypes=[plan_type],
         filters=[
             {"name": "instanceType", "values": [instance_type]},
             {"name": "region", "values": [region]},
-            {"name": "productDescription", "values": [os]},
-            {"name": "planType", "values": [plan_type]},
+            {"name": "productDescription", "values": product_descriptions},
         ],
     )
 
@@ -78,10 +84,23 @@ def get_savingsplan_no_upfront_usd_per_hour(
         if not isinstance(result, Mapping):  # pragma: no cover - defensive
             continue
 
-        if result.get("currency") != _USD:
+        offering = result.get("savingsPlanOffering")
+        if not isinstance(offering, Mapping):
             continue
 
-        duration = result.get("durationSeconds")
+        if offering.get("currency") != _USD:
+            continue
+
+        properties = result.get("properties")
+        if isinstance(properties, Iterable):
+            product_description = _extract_property_value(properties, "productDescription")
+            if (
+                product_description is not None
+                and product_description not in allowed_product_descriptions
+            ):
+                continue
+
+        duration = offering.get("durationSeconds")
         if not isinstance(duration, int):
             continue
 
@@ -178,3 +197,30 @@ def _coerce_payment_options(value: str | Iterable[str]) -> list[str]:
         raise TypeError("Savings Plan payment options must be strings")
 
     return options
+
+
+def _savings_plan_product_descriptions(os: str) -> list[str]:
+    aliases = _SAVINGS_PLAN_PRODUCT_DESCRIPTION_ALIASES.get(os)
+    if aliases is None:
+        return [os]
+
+    # Use dict.fromkeys to preserve order while removing duplicates.
+    return list(dict.fromkeys((os, *aliases)))
+
+
+def _extract_property_value(
+    properties: Iterable[Any],
+    name: str,
+) -> str | None:
+    for prop in properties:
+        if not isinstance(prop, Mapping):
+            continue
+
+        if prop.get("name") != name:
+            continue
+
+        value = prop.get("value")
+        if isinstance(value, str):
+            return value
+
+    return None

@@ -138,6 +138,7 @@ def test_get_savingsplan_no_upfront_usd_per_hour_parses_rates(
     call_kwargs = client.calls[-1]
 
     assert call_kwargs.get("savingsPlanPaymentOptions") == ["No Upfront"]
+    assert call_kwargs.get("savingsPlanTypes") == ["Compute"]
     filters: dict[str | None, tuple[str, ...]] = {}
     for entry in call_kwargs.get("filters", []):
         name = entry.get("name") or entry.get("Name")
@@ -146,8 +147,8 @@ def test_get_savingsplan_no_upfront_usd_per_hour_parses_rates(
 
     assert filters.get("instanceType") == ("m6i.large",)
     assert filters.get("region") == ("ap-southeast-2",)
-    assert filters.get("productDescription") == ("Linux",)
-    assert filters.get("planType") == ("Compute",)
+    assert filters.get("productDescription") == ("Linux", "Linux/UNIX")
+    assert "planType" not in filters
 
 
 def test_get_savingsplan_no_upfront_usd_per_hour_requires_one_and_three_year_rates(
