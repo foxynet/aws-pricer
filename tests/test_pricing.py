@@ -77,6 +77,9 @@ def test_get_ondemand_usd_per_hour_fetches_hourly_rate(monkeypatch: pytest.Monke
     assert filters[("instanceType", "TERM_MATCH")] == "m6i.large"
     assert filters[("regionCode", "TERM_MATCH")] == "ap-southeast-2"
     assert filters[("operatingSystem", "TERM_MATCH")] == "Linux"
+    assert filters[("tenancy", "TERM_MATCH")] == "Shared"
+    assert filters[("capacitystatus", "TERM_MATCH")] == "Used"
+    assert filters[("preInstalledSw", "TERM_MATCH")] == "NA"
     assert call_kwargs.get("MaxResults") == 1
 
 

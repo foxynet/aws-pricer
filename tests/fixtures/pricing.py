@@ -14,6 +14,9 @@ Resources
               {"Type": "TERM_MATCH", "Field": "instanceType", "Value": "m6i.large"},
               {"Type": "TERM_MATCH", "Field": "regionCode", "Value": "ap-southeast-2"},
               {"Type": "TERM_MATCH", "Field": "operatingSystem", "Value": "Linux"},
+              {"Type": "TERM_MATCH", "Field": "tenancy", "Value": "Shared"},
+              {"Type": "TERM_MATCH", "Field": "capacitystatus", "Value": "Used"},
+              {"Type": "TERM_MATCH", "Field": "preInstalledSw", "Value": "NA"},
           ],
           MaxResults=1,
       )
@@ -77,6 +80,9 @@ def make_price_list_entry(*, usd_per_hour: str = "0.096", unit: str = "Hrs") -> 
                     "instanceType": "m6i.large",
                     "regionCode": "ap-southeast-2",
                     "operatingSystem": "Linux",
+                    "tenancy": "Shared",
+                    "capacitystatus": "Used",
+                    "preInstalledSw": "NA",
                 },
             },
             "terms": {
