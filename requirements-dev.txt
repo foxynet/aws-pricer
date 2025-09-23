@@ -1,0 +1,9 @@
+-r requirements.txt
+
+build>=1.0,<2.0
+invoke>=2.0,<3.0
+mypy>=1.8,<2.0
+pytest>=7.4,<9.0
+pytest-cov>=4.1,<6.0
+ruff>=0.2,<1.0
+twine>=4.0,<5.0
