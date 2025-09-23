@@ -27,17 +27,29 @@ _SAVINGS_PLAN_PRODUCT_DESCRIPTION_ALIASES: Final[dict[str, tuple[str, ...]]] = {
 }
 
 
+_ONDEMAND_FILTERS: Final[tuple[tuple[str, str], ...]] = (
+    ("tenancy", "Shared"),
+    ("capacitystatus", "Used"),
+    ("preInstalledSw", "NA"),
+)
+
+
 def get_ondemand_usd_per_hour(*, instance_type: str, region: str, os: str) -> Decimal:
     """Return the on-demand hourly USD price for an EC2 instance."""
 
     client = boto3.client("pricing", region_name=_PRICING_REGION)
+    filters = [
+        {"Type": _TERM_MATCH, "Field": "instanceType", "Value": instance_type},
+        {"Type": _TERM_MATCH, "Field": "regionCode", "Value": region},
+        {"Type": _TERM_MATCH, "Field": "operatingSystem", "Value": os},
+    ]
+    filters.extend(
+        {"Type": _TERM_MATCH, "Field": field, "Value": value}
+        for field, value in _ONDEMAND_FILTERS
+    )
     response = client.get_products(
         ServiceCode=_EC2_SERVICE_CODE,
-        Filters=[
-            {"Type": _TERM_MATCH, "Field": "instanceType", "Value": instance_type},
-            {"Type": _TERM_MATCH, "Field": "regionCode", "Value": region},
-            {"Type": _TERM_MATCH, "Field": "operatingSystem", "Value": os},
-        ],
+        Filters=filters,
         MaxResults=1,
     )
 
