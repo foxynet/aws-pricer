@@ -35,24 +35,28 @@ Resources
       savingsplans = boto3.client("savingsplans", region_name="us-east-1")
       response = savingsplans.describe_savings_plans_offering_rates(
           savingsPlanPaymentOptions=["No Upfront"],
+          savingsPlanTypes=["Compute"],
           filters=[
               {"name": "instanceType", "values": ["m6i.large"]},
               {"name": "region", "values": ["ap-southeast-2"]},
-              {"name": "productDescription", "values": ["Linux"]},
-              {"name": "planType", "values": ["Compute"]},
+              {"name": "productDescription", "values": ["Linux/UNIX"]},
           ],
       )
 
   Example response entry (abbreviated)::
 
       {
-          "currency": "USD",
-          "durationSeconds": 31536000,
+          "savingsPlanOffering": {
+              "currency": "USD",
+              "durationSeconds": 31536000,
+              "planType": "Compute",
+          },
+          "properties": [
+              {"name": "productDescription", "value": "Linux/UNIX"},
+              {"name": "tenancy", "value": "shared"},
+          ],
           "rate": "0.052",
-          "savingsPlanArn": "arn:aws:savingsplans:sample",
-          "savingsPlanType": "COMPUTE",
-          "serviceCode": "AmazonEC2",
-          "unit": "Hrs"
+          "unit": "Hrs",
       }
 """
 
@@ -104,17 +108,29 @@ def make_savings_plan_result(
     duration_seconds: int,
     currency: str = "USD",
     unit: str = "Hrs",
+    product_description: str = "Linux/UNIX",
+    tenancy: str = "shared",
 ) -> dict[str, Any]:
     """Return a minimal Savings Plans offering rate search result."""
     return {
-        "currency": currency,
-        "durationSeconds": duration_seconds,
-        "operation": "RunInstances",
-        "productType": "Compute",
+        "savingsPlanOffering": {
+            "offeringId": "sample-offering-id",
+            "paymentOption": "No Upfront",
+            "planType": "Compute",
+            "durationSeconds": duration_seconds,
+            "currency": currency,
+        },
         "rate": usd_per_hour,
-        "savingsPlanArn": "arn:aws:savingsplans:sample",
-        "savingsPlanType": "COMPUTE",
-        "serviceCode": "AmazonEC2",
         "unit": unit,
+        "productType": "EC2",
+        "serviceCode": "AmazonEC2",
         "usageType": "APAC-Sydney-BoxUsage:m6i.large",
+        "operation": "RunInstances",
+        "properties": [
+            {"name": "instanceFamily", "value": "m6i"},
+            {"name": "productDescription", "value": product_description},
+            {"name": "instanceType", "value": "m6i.large"},
+            {"name": "tenancy", "value": tenancy},
+            {"name": "region", "value": "ap-southeast-2"},
+        ],
     }
