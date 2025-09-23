@@ -32,6 +32,10 @@ _ONDEMAND_FILTERS: Final[tuple[tuple[str, str], ...]] = (
     ("capacitystatus", "Used"),
     ("preInstalledSw", "NA"),
 )
+_LICENSE_MODEL_BY_OS: Final[dict[str, str]] = {
+    "linux": "No License required",
+    "windows": "License Included",
+}
 
 
 def get_ondemand_usd_per_hour(*, instance_type: str, region: str, os: str) -> Decimal:
@@ -43,6 +47,11 @@ def get_ondemand_usd_per_hour(*, instance_type: str, region: str, os: str) -> De
         {"Type": _TERM_MATCH, "Field": "regionCode", "Value": region},
         {"Type": _TERM_MATCH, "Field": "operatingSystem", "Value": os},
     ]
+    license_model = _license_model_for_os(os)
+    if license_model is not None:
+        filters.append(
+            {"Type": _TERM_MATCH, "Field": "licenseModel", "Value": license_model}
+        )
     filters.extend(
         {"Type": _TERM_MATCH, "Field": field, "Value": value}
         for field, value in _ONDEMAND_FILTERS
@@ -209,6 +218,10 @@ def _coerce_payment_options(value: str | Iterable[str]) -> list[str]:
         raise TypeError("Savings Plan payment options must be strings")
 
     return options
+
+
+def _license_model_for_os(os: str) -> str | None:
+    return _LICENSE_MODEL_BY_OS.get(os.casefold())
 
 
 def _savings_plan_product_descriptions(os: str) -> list[str]:
