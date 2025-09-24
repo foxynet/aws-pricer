@@ -152,11 +152,30 @@ def test_get_savingsplan_no_upfront_usd_per_hour_parses_rates(
     assert filters.get("instanceType") == ("m6i.large",)
     assert filters.get("region") == ("ap-southeast-2",)
     assert filters.get("productDescription") == ("Linux", "Linux/UNIX")
+    assert filters.get("tenancy") == ("shared",)
     assert "planType" not in filters
 
 
-def test_get_savingsplan_no_upfront_usd_per_hour_filters_license_model(
+@pytest.mark.parametrize(
+    (
+        "instance_type",
+        "os",
+        "product_description",
+        "expected_three_year",
+    ),
+    (
+        ("m5a.xlarge", "Linux", "Linux/UNIX", "0.307"),
+        ("m5.large", "Linux", "Linux/UNIX", "0.16"),
+        ("m6i.2xlarge", "Windows", "Windows", "0.25131"),
+        ("m4.2xlarge", "Windows", "Windows", "0.2782"),
+    ),
+)
+def test_get_savingsplan_no_upfront_usd_per_hour_prefers_box_usage_rates(
     monkeypatch: pytest.MonkeyPatch,
+    instance_type: str,
+    os: str,
+    product_description: str,
+    expected_three_year: str,
 ) -> None:
     if not hasattr(pricing, "get_savingsplan_no_upfront_usd_per_hour"):
         pytest.fail("pricing.get_savingsplan_no_upfront_usd_per_hour is not implemented")
@@ -164,19 +183,25 @@ def test_get_savingsplan_no_upfront_usd_per_hour_filters_license_model(
     response = {
         "searchResults": [
             pricing_fixtures.make_savings_plan_result(
-                usd_per_hour="0.052",
+                usd_per_hour="0.35",
                 duration_seconds=31_536_000,
-                license_model="No License required",
+                product_description=product_description,
+                instance_type=instance_type,
+                usage_type=f"APS2-BoxUsage:{instance_type}",
             ),
             pricing_fixtures.make_savings_plan_result(
-                usd_per_hour="0.060",
+                usd_per_hour=expected_three_year,
                 duration_seconds=94_608_000,
-                license_model="License Included",
+                product_description=product_description,
+                instance_type=instance_type,
+                usage_type=f"APS2-BoxUsage:{instance_type}",
             ),
             pricing_fixtures.make_savings_plan_result(
-                usd_per_hour="0.047",
+                usd_per_hour="0.05",
                 duration_seconds=94_608_000,
-                license_model="No License required",
+                product_description=product_description,
+                instance_type=instance_type,
+                usage_type=f"APS2-UnusedBox:{instance_type}",
             ),
         ]
     }
@@ -189,14 +214,17 @@ def test_get_savingsplan_no_upfront_usd_per_hour_filters_license_model(
     _patch_boto3(monkeypatch, fake_client=_fake_client)
 
     result = pricing.get_savingsplan_no_upfront_usd_per_hour(
-        instance_type="m6i.large",
+        instance_type=instance_type,
         region="ap-southeast-2",
-        os="Linux",
+        os=os,
         plan_type="Compute",
         savingsPlanPaymentOptions="No Upfront",
     )
 
-    assert result == {"1y": Decimal("0.052"), "3y": Decimal("0.047")}
+    assert result == {
+        "1y": Decimal("0.35"),
+        "3y": Decimal(expected_three_year),
+    }
 
 
 def test_get_savingsplan_no_upfront_usd_per_hour_requires_one_and_three_year_rates(
