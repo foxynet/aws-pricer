@@ -57,7 +57,6 @@ Resources
           "properties": [
               {"name": "productDescription", "value": "Linux/UNIX"},
               {"name": "tenancy", "value": "shared"},
-              {"name": "licenseModel", "value": "No License required"},
           ],
           "rate": "0.052",
           "unit": "Hrs",
@@ -117,9 +116,14 @@ def make_savings_plan_result(
     unit: str = "Hrs",
     product_description: str = "Linux/UNIX",
     tenancy: str = "shared",
-    license_model: str = "No License required",
+    instance_type: str = "m6i.large",
+    region: str = "ap-southeast-2",
+    usage_type: str | None = None,
 ) -> dict[str, Any]:
     """Return a minimal Savings Plans offering rate search result."""
+    if usage_type is None:
+        usage_type = f"APS2-BoxUsage:{instance_type}"
+
     return {
         "savingsPlanOffering": {
             "offeringId": "sample-offering-id",
@@ -132,14 +136,13 @@ def make_savings_plan_result(
         "unit": unit,
         "productType": "EC2",
         "serviceCode": "AmazonEC2",
-        "usageType": "APAC-Sydney-BoxUsage:m6i.large",
+        "usageType": usage_type,
         "operation": "RunInstances",
         "properties": [
             {"name": "instanceFamily", "value": "m6i"},
             {"name": "productDescription", "value": product_description},
-            {"name": "instanceType", "value": "m6i.large"},
+            {"name": "instanceType", "value": instance_type},
             {"name": "tenancy", "value": tenancy},
-            {"name": "licenseModel", "value": license_model},
-            {"name": "region", "value": "ap-southeast-2"},
+            {"name": "region", "value": region},
         ],
     }

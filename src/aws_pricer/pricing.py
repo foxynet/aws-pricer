@@ -89,6 +89,7 @@ def get_savingsplan_no_upfront_usd_per_hour(
             {"name": "instanceType", "values": [instance_type]},
             {"name": "region", "values": [region]},
             {"name": "productDescription", "values": product_descriptions},
+            {"name": "tenancy", "values": ["shared"]},
         ],
     )
 
@@ -96,6 +97,10 @@ def get_savingsplan_no_upfront_usd_per_hour(
     rates: dict[str, Decimal] = {}
     for result in search_results:
         if not isinstance(result, Mapping):  # pragma: no cover - defensive
+            continue
+
+        usage_type = result.get("usageType")
+        if not isinstance(usage_type, str) or "BoxUsage" not in usage_type:
             continue
 
         offering = result.get("savingsPlanOffering")
@@ -106,7 +111,6 @@ def get_savingsplan_no_upfront_usd_per_hour(
             continue
 
         properties = result.get("properties")
-        license_model: str | None = None
         if isinstance(properties, Iterable):
             product_description = _extract_property_value(
                 properties, "productDescription"
@@ -116,15 +120,7 @@ def get_savingsplan_no_upfront_usd_per_hour(
                 and product_description not in allowed_product_descriptions
             ):
                 continue
-
-            license_model = _extract_property_value(properties, "licenseModel")
         else:
-            continue
-
-        if (
-            license_model is None
-            or license_model.casefold() != _NO_LICENSE_REQUIRED.casefold()
-        ):
             continue
 
         duration = offering.get("durationSeconds")
